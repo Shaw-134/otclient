@@ -114,9 +114,10 @@ void LoginHttp::httpLogin(const std::string& host, const std::string& path,
     g_asyncDispatcher->detach_task(
         [this, host, path, port, email, password, token, request_id, httpLogin] {
         if (cancelled.load()) return;
-        HttpResponse result =
-            this->loginHttpsJson(host, path, port, email, password, token);
-        if (httpLogin && (!result || result.status != Success)) {
+        HttpResponse result = httpLogin
+            ? this->loginHttpJson(host, path, port, email, password, token)
+            : this->loginHttpsJson(host, path, port, email, password, token);
+        if (!httpLogin && (!result || result.status != Success)) {
             if (cancelled.load()) return;
             result = loginHttpJson(host, path, port, email, password, token);
         }

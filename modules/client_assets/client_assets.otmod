@@ -1,0 +1,8 @@
+Module
+  name: client_assets
+  description: Downloads missing client assets by client version
+  author: OTClient team
+  website: https://github.com/edubart/otclient
+  sandboxed: true
+  scripts: [ client_assets ]
+

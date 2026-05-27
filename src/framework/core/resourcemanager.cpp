@@ -31,7 +31,148 @@
 #include "framework/platform/platform.h"
 #include "framework/util/crypt.h"
 
+#ifndef USE_PRECOMPILED_HEADERS
+#include <array>
+#include <cstdint>
+#include <filesystem>
+#endif
+
+#include <lzma.h>
+#include <archive.h>
+#include <archive_entry.h>
+
 ResourceManager g_resources;
+
+namespace {
+
+std::string normalizeVirtualPath(std::string path)
+{
+    stdext::replace_all(path, "\\", "/");
+    while (!path.empty() && path.front() == '/')
+        path.erase(path.begin());
+    return path;
+}
+
+bool ensureWriteDirectory(const std::filesystem::path& directory)
+{
+    std::filesystem::path current;
+    for (const auto& part : directory) {
+        if (part.empty() || part == ".")
+            continue;
+
+        current /= part;
+        const auto currentPath = current.generic_string();
+
+        PHYSFS_Stat stat = {};
+        if (PHYSFS_stat(currentPath.c_str(), &stat)) {
+            if (stat.filetype != PHYSFS_FILETYPE_DIRECTORY) {
+                g_logger.error("Unable to create directory '{}': path is a file", currentPath);
+                return false;
+            }
+            continue;
+        }
+
+        if (!PHYSFS_mkdir(currentPath.c_str())) {
+            g_logger.error(
+                "Unable to create directory '{}': {}",
+                currentPath,
+                PHYSFS_getErrorByCode(PHYSFS_getLastErrorCode())
+            );
+            return false;
+        }
+    }
+
+    return true;
+}
+
+bool decompressLzmaData(const std::string& input, std::string& output)
+{
+    lzma_stream stream = LZMA_STREAM_INIT;
+    lzma_ret ret = lzma_auto_decoder(&stream, UINT64_MAX, 0);
+    if (ret != LZMA_OK) {
+        g_logger.error("Unable to initialize LZMA decoder: {}", static_cast<int>(ret));
+        return false;
+    }
+
+    std::array<uint8_t, 8192> buffer{};
+    stream.next_in = reinterpret_cast<const uint8_t*>(input.data());
+    stream.avail_in = input.size();
+
+    output.clear();
+    do {
+        stream.next_out = buffer.data();
+        stream.avail_out = buffer.size();
+
+        ret = lzma_code(&stream, LZMA_FINISH);
+        if (ret != LZMA_OK && ret != LZMA_STREAM_END) {
+            lzma_end(&stream);
+            g_logger.error("LZMA decompression failed: {}", static_cast<int>(ret));
+            return false;
+        }
+
+        const auto written = buffer.size() - stream.avail_out;
+        output.append(reinterpret_cast<const char*>(buffer.data()), written);
+    } while (ret != LZMA_STREAM_END);
+
+    lzma_end(&stream);
+    return true;
+}
+
+std::string selectArchiveEntryPath(std::string entryName, std::string entryPrefix, const bool stripPrefix)
+{
+    stdext::replace_all(entryName, "\\", "/");
+    stdext::replace_all(entryPrefix, "\\", "/");
+
+    while (entryName.starts_with("./"))
+        entryName.erase(0, 2);
+    while (!entryPrefix.empty() && entryPrefix.front() == '/')
+        entryPrefix.erase(entryPrefix.begin());
+
+    const bool prefixLooksLikeFile = std::filesystem::path(entryPrefix).has_extension();
+    if (!entryPrefix.empty() && !prefixLooksLikeFile && !entryPrefix.ends_with('/'))
+        entryPrefix.push_back('/');
+
+    std::string relativePath;
+    if (entryPrefix.empty()) {
+        relativePath = entryName;
+        if (stripPrefix) {
+            if (const auto slash = relativePath.find('/'); slash != std::string::npos)
+                relativePath.erase(0, slash + 1);
+        }
+    } else {
+        auto prefixPos = entryName.find(entryPrefix);
+        while (prefixPos != std::string::npos && prefixPos > 0 && entryName[prefixPos - 1] != '/')
+            prefixPos = entryName.find(entryPrefix, prefixPos + 1);
+
+        if (prefixPos == std::string::npos)
+            return "";
+
+        relativePath = stripPrefix ? entryName.substr(prefixPos + entryPrefix.size()) : entryName.substr(prefixPos);
+    }
+
+    if (relativePath.empty())
+        return "";
+
+    const auto normalized = std::filesystem::path(relativePath).lexically_normal();
+    if (normalized.empty() || normalized.is_absolute())
+        return "";
+
+    const auto normalizedString = normalized.generic_string();
+    if (normalizedString == "." || normalizedString.starts_with("../") || normalizedString == "..")
+        return "";
+
+    return normalizedString;
+}
+
+HttpResult_ptr getDownloadedFile(std::string path)
+{
+    path = normalizeVirtualPath(std::move(path));
+    if (path.starts_with("downloads/"))
+        path.erase(0, std::string("downloads/").size());
+    return g_http.getFile(path);
+}
+
+} // namespace
 
 void ResourceManager::init(const char* argv0)
 {
@@ -252,24 +393,15 @@ std::string ResourceManager::readFileContents(const std::string& fileName)
 bool ResourceManager::writeFileBuffer(const std::string& fileName, const uint8_t* data, const uint32_t size, const bool createDirectory)
 {
     if (createDirectory) {
-        const auto& path = std::filesystem::path(fileName);
-        const auto& dirPath = path.parent_path().string();
+        const auto& path = std::filesystem::path(normalizeVirtualPath(fileName));
+        const auto& dirPath = path.parent_path();
 
-        PHYSFS_Stat stat = {};
-        const bool dirExists = PHYSFS_stat(dirPath.c_str(), &stat) && stat.filetype == PHYSFS_FILETYPE_DIRECTORY;
-        if (!dirExists) {
-            if (!PHYSFS_mkdir(dirPath.c_str())) {
-                g_logger.error(
-                    "Unable to create write directory '{}': {}",
-                    dirPath,
-                    PHYSFS_getErrorByCode(PHYSFS_getLastErrorCode())
-                );
-                return false;
-            }
-        }
+        if (!dirPath.empty() && !ensureWriteDirectory(dirPath))
+            return false;
     }
 
-    PHYSFS_file* file = PHYSFS_openWrite(fileName.c_str());
+    const auto normalizedFileName = normalizeVirtualPath(fileName);
+    PHYSFS_file* file = PHYSFS_openWrite(normalizedFileName.c_str());
     if (!file) {
         g_logger.error(PHYSFS_getErrorByCode(PHYSFS_getLastErrorCode()));
         return false;
@@ -592,6 +724,151 @@ std::string ResourceManager::fileChecksum(const std::string& path) {
     cache[path] = checksum;
 
     return checksum;
+}
+
+std::string ResourceManager::fileSha256(const std::string& path)
+{
+    try {
+        return g_crypt.sha256(readFileContents(path));
+    } catch (const stdext::exception& e) {
+        g_logger.debug("Unable to read '{}' for SHA-256: {}", path, e.what());
+        return "";
+    }
+}
+
+bool ResourceManager::writeDownloadedFile(std::string path, std::string destinationPath, const bool decompressLzma)
+{
+    const auto downloadedPath = path;
+    const auto downloadedFile = getDownloadedFile(downloadedPath);
+    if (!downloadedFile) {
+        g_logger.error("Cannot find downloaded file '{}'", downloadedPath);
+        return false;
+    }
+
+    std::string contents = downloadedFile->response;
+    if (decompressLzma) {
+        std::string decompressed;
+        if (!decompressLzmaData(contents, decompressed))
+            return false;
+        contents = std::move(decompressed);
+    }
+
+    destinationPath = normalizeVirtualPath(std::move(destinationPath));
+    return writeFileBuffer(
+        destinationPath,
+        reinterpret_cast<const uint8_t*>(contents.data()),
+        static_cast<uint32_t>(contents.size()),
+        true
+    );
+}
+
+bool ResourceManager::extractDownloadedArchive(std::string path, std::string destinationPath, std::string entryPrefix, const bool stripPrefix)
+{
+    const auto downloadedPath = path;
+    const auto downloadedFile = getDownloadedFile(downloadedPath);
+    if (!downloadedFile) {
+        g_logger.error("Cannot find downloaded archive '{}'", downloadedPath);
+        return false;
+    }
+
+    const auto& archive = downloadedFile->response;
+    if (archive.empty()) {
+        g_logger.error("Downloaded archive '{}' is empty", downloadedPath);
+        return false;
+    }
+
+    auto* archiveReader = archive_read_new();
+    if (!archiveReader) {
+        g_logger.error("Unable to initialize archive reader for '{}'", downloadedPath);
+        return false;
+    }
+
+    archive_read_support_format_zip(archiveReader);
+    archive_read_support_format_rar(archiveReader);
+    archive_read_support_format_rar5(archiveReader);
+    archive_read_support_filter_all(archiveReader);
+
+    if (archive_read_open_memory(archiveReader, archive.data(), archive.size()) != ARCHIVE_OK) {
+        g_logger.error(
+            "Unable to open downloaded archive '{}': {}",
+            downloadedPath,
+            archive_error_string(archiveReader)
+        );
+        archive_read_free(archiveReader);
+        return false;
+    }
+
+    destinationPath = normalizeVirtualPath(std::move(destinationPath));
+    if (!destinationPath.empty() && !destinationPath.ends_with('/'))
+        destinationPath.push_back('/');
+
+    bool wroteFile = false;
+    constexpr int readSize = 8192;
+    std::array<char, readSize> readBuffer = {};
+
+    archive_entry* entry = nullptr;
+    int archiveResult = ARCHIVE_OK;
+    while ((archiveResult = archive_read_next_header(archiveReader, &entry)) == ARCHIVE_OK) {
+        const char* entryPath = archive_entry_pathname_utf8(entry);
+        if (!entryPath)
+            entryPath = archive_entry_pathname(entry);
+
+        std::string entryName = entryPath ? entryPath : "";
+        const bool isDirectory = entryName.ends_with('/') || entryName.ends_with('\\');
+        const auto relativePath = selectArchiveEntryPath(entryName, entryPrefix, stripPrefix);
+
+        if (!isDirectory && !relativePath.empty()) {
+            std::string contents;
+            la_ssize_t readBytes = 0;
+            do {
+                readBytes = archive_read_data(archiveReader, readBuffer.data(), readBuffer.size());
+                if (readBytes < 0) {
+                    g_logger.error(
+                        "Unable to read archive entry '{}' from '{}': {}",
+                        entryName,
+                        downloadedPath,
+                        archive_error_string(archiveReader)
+                    );
+                    archive_read_free(archiveReader);
+                    return false;
+                }
+                if (readBytes > 0)
+                    contents.append(readBuffer.data(), static_cast<size_t>(readBytes));
+            } while (readBytes > 0);
+
+            const auto destinationFile = destinationPath + relativePath;
+            if (!writeFileBuffer(
+                    destinationFile,
+                    reinterpret_cast<const uint8_t*>(contents.data()),
+                    static_cast<uint32_t>(contents.size()),
+                    true
+                )) {
+                archive_read_free(archiveReader);
+                return false;
+            }
+            wroteFile = true;
+        } else {
+            archive_read_data_skip(archiveReader);
+        }
+    }
+
+    if (archiveResult != ARCHIVE_EOF) {
+        g_logger.error(
+            "Unable to read archive '{}': {}",
+            downloadedPath,
+            archive_error_string(archiveReader)
+        );
+        archive_read_free(archiveReader);
+        return false;
+    }
+
+    archive_read_free(archiveReader);
+    return wroteFile;
+}
+
+bool ResourceManager::extractDownloadedZip(std::string path, std::string destinationPath, std::string entryPrefix, const bool stripPrefix)
+{
+    return extractDownloadedArchive(std::move(path), std::move(destinationPath), std::move(entryPrefix), stripPrefix);
 }
 
 std::unordered_map<std::string, std::string> ResourceManager::filesChecksums()

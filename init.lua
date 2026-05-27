@@ -8,6 +8,17 @@ Services = {
     --websites = "http://localhost/?subtopic=accountmanagement", --./client_entergame "Forgot password and/or email"
     --createAccount = "http://localhost/clientcreateaccount.php", --./client_entergame -- createAccount.lua
     --getCoinsUrl = "http://localhost/?subtopic=shop&step=terms", --./game_market
+    clientAssets = {
+        enabled = true,
+        repository = "dudantas/tibia-client",
+        installSounds = true,
+        strictManifestSha256 = false,
+        allowRawFallbackHashMismatch = true,
+        preferArchive = true,
+        installArchiveExtras = true,
+        archiveExtraPrefixes = { "bin" },
+        installPackagedFiles = true
+    }, -- ./client_assets
 }
 
 --- Enables or disables the entire server configuration block.

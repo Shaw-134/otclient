@@ -153,6 +153,7 @@ if (TOGGLE_FRAMEWORK_PROTOBUF)
   find_package(Protobuf REQUIRED)
 endif()
 find_package(LibLZMA REQUIRED)
+find_package(LibArchive REQUIRED)
 find_package(nlohmann_json REQUIRED)
 find_package(asio REQUIRED)
 find_package(Threads REQUIRED)
@@ -168,6 +169,13 @@ else()
   add_library(unofficial::inih::inireader ALIAS PkgConfig::INIReader)
 endif()
 find_package(Freetype REQUIRED)
+
+if(TARGET LibArchive::LibArchive)
+  set(LIBARCHIVE_LIBRARY LibArchive::LibArchive)
+else()
+  include_directories(${LibArchive_INCLUDE_DIRS})
+  set(LIBARCHIVE_LIBRARY ${LibArchive_LIBRARIES})
+endif()
 
 find_path(CPPCODEC_INCLUDE_DIRS "cppcodec/base32_crockford.hpp")
 
@@ -699,6 +707,7 @@ if(MSVC)
           asio::asio
           OpenAL::OpenAL
           LibLZMA::LibLZMA
+          ${LIBARCHIVE_LIBRARY}
           winmm.lib
           pugixml::pugixml
           fmt::fmt
@@ -752,6 +761,7 @@ elseif(ANDROID)
           Vorbis::vorbis
           Vorbis::vorbisfile
           LibLZMA::LibLZMA
+          ${LIBARCHIVE_LIBRARY}
           game-activity::game-activity
           GLESv3
           android
@@ -821,6 +831,7 @@ elseif(WASM)
           asio::asio
           # OpenAL::OpenAL (using emscripten openal api)
           LibLZMA::LibLZMA
+          ${LIBARCHIVE_LIBRARY}
           pugixml::pugixml
           ZLIB::ZLIB
           OpenSSL::SSL
@@ -943,6 +954,7 @@ else() # Linux
           asio::asio
           OpenAL::OpenAL
           LibLZMA::LibLZMA
+          ${LIBARCHIVE_LIBRARY}
           pugixml::pugixml
           ZLIB::ZLIB
           OpenSSL::SSL

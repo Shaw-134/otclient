@@ -84,6 +84,10 @@ public:
     void save_string_into_file(const std::string& contents, const std::string& name);
 
     std::string fileChecksum(const std::string& path);
+    std::string fileSha256(const std::string& path);
+    bool writeDownloadedFile(std::string path, std::string destinationPath, bool decompressLzma);
+    bool extractDownloadedArchive(std::string path, std::string destinationPath, std::string entryPrefix, bool stripPrefix);
+    bool extractDownloadedZip(std::string path, std::string destinationPath, std::string entryPrefix, bool stripPrefix);
     std::unordered_map<std::string, std::string> filesChecksums();
     std::string selfChecksum();
     void updateFiles(const std::set<std::string>& files);
