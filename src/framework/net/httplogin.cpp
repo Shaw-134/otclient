@@ -226,8 +226,8 @@ void LoginHttp::httpLogin(const std::string& host, const std::string& path,
         };
 
         HttpResponse result = httpLogin ? doRequest(true) : doRequest(false);
-        if ((!result || result.status != Success) && !cancelled.load()) {
-            result = httpLogin ? doRequest(false) : doRequest(true);
+        if (!httpLogin && (!result || result.status != Success) && !cancelled.load()) {
+            result = doRequest(true);
         }
 
         if (cancelled.load()) return;
