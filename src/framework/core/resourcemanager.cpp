@@ -38,8 +38,10 @@
 #endif
 
 #include <lzma.h>
+#ifdef FRAMEWORK_HAVE_LIBARCHIVE
 #include <archive.h>
 #include <archive_entry.h>
+#endif
 
 ResourceManager g_resources;
 
@@ -830,6 +832,14 @@ bool ResourceManager::writeDownloadedFileToWorkDir(const std::string& path, std:
 
 bool ResourceManager::extractDownloadedArchive(const std::string& path, std::string destinationPath, const std::string& entryPrefix, const bool stripPrefix)
 {
+#ifndef FRAMEWORK_HAVE_LIBARCHIVE
+    (void)path;
+    (void)destinationPath;
+    (void)entryPrefix;
+    (void)stripPrefix;
+    g_logger.error("Archive extraction is unavailable on this platform.");
+    return false;
+#else
     const auto downloadedFile = getDownloadedFile(path);
     if (!downloadedFile) {
         g_logger.error("Cannot find downloaded archive '{}'", path);
@@ -929,6 +939,7 @@ bool ResourceManager::extractDownloadedArchive(const std::string& path, std::str
 
     archive_read_free(archiveReader);
     return wroteFile;
+#endif
 }
 
 bool ResourceManager::extractDownloadedArchiveToWorkDir(const std::string& path, std::string destinationPath, const std::string& entryPrefix, const bool stripPrefix)
