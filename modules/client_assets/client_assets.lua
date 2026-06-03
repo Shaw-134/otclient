@@ -298,7 +298,7 @@ local function updateDownloadBar(window, percent)
 end
 
 local function completeMarkerPath(version)
-  return string.format('/data/things/%d/.client-assets-complete', version)
+  return string.format('data/things/%d/.client-assets-complete', version)
 end
 
 local function joinPhysicalPath(base, path)
@@ -314,6 +314,10 @@ local function physicalInstallPath(path)
   return joinPhysicalPath(g_resources.getWorkDir(), path)
 end
 
+local function shouldInstallInWorkDir(config)
+  return config and config.installInWorkDir ~= false
+end
+
 local function hasCatalogEntryFile(basePath, entry)
   if type(entry) ~= 'table' or type(entry.file) ~= 'string' then
     return false
@@ -322,15 +326,19 @@ local function hasCatalogEntryFile(basePath, entry)
 end
 
 local function installFileExists(path)
-  if g_resources.fileExistsInWorkDir then
-    return g_resources.fileExistsInWorkDir(path)
+  if g_resources.fileExistsInWorkDir and g_resources.fileExistsInWorkDir(path) then
+    return true
   end
   return g_resources.fileExists('/' .. path)
 end
 
 local function readInstallFile(path)
-  if g_resources.readFileContentsFromWorkDir then
-    return g_resources.readFileContentsFromWorkDir(path)
+  if g_resources.readFileContentsFromWorkDir and
+     (not g_resources.fileExistsInWorkDir or g_resources.fileExistsInWorkDir(path)) then
+    local ok, contents = pcall(function() return g_resources.readFileContentsFromWorkDir(path) end)
+    if ok and type(contents) == 'string' then
+      return contents
+    end
   end
   return g_resources.readFileContents('/' .. path)
 end
@@ -386,17 +394,17 @@ local function hasModernClientFiles(version)
   return hasModernClientFilesAtPath(string.format('data/things/%d/', version), true)
 end
 
-local function hasInstalledModernClientFiles(version)
-  return hasModernClientFilesAtPath(string.format('data/things/%d/', version), true)
-end
+local hasInstalledModernClientFiles = hasModernClientFiles
 
-local function markClientVersionInstalled(version)
-  if g_resources.writeFileContentsToWorkDir then
-    return g_resources.writeFileContentsToWorkDir(completeMarkerPath(version), string.format('client=%d\n', version))
+local function markClientVersionInstalled(config, version)
+  local markerPath = completeMarkerPath(version)
+  local contents = string.format('client=%d\n', version)
+  if shouldInstallInWorkDir(config) and g_resources.writeFileContentsToWorkDir then
+    return g_resources.writeFileContentsToWorkDir(markerPath, contents)
   end
 
   g_resources.makeDir(string.format('/data/things/%d', version))
-  return g_resources.writeFileContents(completeMarkerPath(version), string.format('client=%d\n', version))
+  return g_resources.writeFileContents('/' .. markerPath, contents)
 end
 
 local function normalizeVersionKey(version)
@@ -727,10 +735,6 @@ local function verifyInstalledSha256(destinationPath, expectedSha256, deleteOnMi
   end
 
   return true
-end
-
-local function shouldInstallInWorkDir(config)
-  return config and config.installInWorkDir ~= false
 end
 
 local function writeDownloadedFile(config, downloadPath, destinationPath, decompressLzma)
@@ -1336,8 +1340,7 @@ function isClientVersionInstalled(version)
   end
 
   if version >= 1281 then
-    return hasInstalledModernClientFiles(version) and
-           installFileExists(string.format('data/things/%d/.client-assets-complete', version))
+    return hasInstalledModernClientFiles(version)
   end
 
   return g_resources.fileExists(string.format('/data/things/%d/Tibia.dat', version)) and
@@ -1411,10 +1414,11 @@ function ensureClientVersion(version, callback)
           return finishDownload(false, 'Assets were downloaded but the client files are still incomplete. Missing catalog-content.json, assets.json.sha256, or required catalog files.')
         end
 
-        if not isClientVersionInstalled(version) then
-          markClientVersionInstalled(version)
-          if not isClientVersionInstalled(version) then
-            return finishDownload(false, 'Assets were downloaded but the install marker could not be written.')
+        local markerPath = completeMarkerPath(version)
+        if not installFileExists(markerPath) then
+          markClientVersionInstalled(config, version)
+          if not installFileExists(markerPath) then
+            logWarning('Assets were downloaded but the install marker could not be written.')
           end
         end
 
