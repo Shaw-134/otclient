@@ -97,8 +97,9 @@ function GemAtelier.redirectToGem(gemData)
 	local foundIndex = 1
 
 	for i, data in pairs(WheelOfDestiny.atelierGems) do
+		repeat
 		if (sortQuality > 1 and data.gemType ~= sortQuality - 2) or (sortAffinity > 1 and data.gemDomain ~= sortAffinity - 2) then
-		 	goto continue
+		 	break
 	 	end
 
 		if gemData.gemID == data.gemID then
@@ -108,7 +109,7 @@ function GemAtelier.redirectToGem(gemData)
 
 		index = index + 1
 		table.insert(totalGemList, data)
-		:: continue ::
+		until true
 	end
 
 	local gemCount = 0
@@ -116,17 +117,19 @@ function GemAtelier.redirectToGem(gemData)
 	local focusedGem = nil
 
 	for i, data in pairs(totalGemList) do
+		local __brk = false
+		repeat
 		if gemCount == 15 then
-			break
+			do __brk = true break end
 		end
 
 		if i < beginList then
-			goto continue
+			break
 		end
 
 		local widget = g_ui.createWidget('GemPanel', gemList)
 		local success = GemAtelier.setupGemWidget(widget, data)
-		
+			
 		if success then
 			currentGemList[#currentGemList + 1] = data
 			if widget then
@@ -140,8 +143,9 @@ function GemAtelier.redirectToGem(gemData)
 		else
 			widget:destroy()
 		end
-
-		:: continue ::
+		
+		until true
+		if __brk then break end
 	end
 
 	GemAtelier.showGemRevelation()
@@ -173,24 +177,25 @@ function GemAtelier.showGems(selectFirst, lastIndex)
 	
 	
 	for i, data in pairs(WheelOfDestiny.atelierGems) do
+		repeat
 		if not data.gemID or data.gemID < 0 then
 			g_logger.debug(string.format("[GemAtelier] Skipping gem with invalid ID: %s", tostring(data.gemID)))
-			goto continue
+			break
 		end
-		
+
 		local isLocked = data.locked == 1 or data.locked == true
 		if lockedOnly and not isLocked then
-			goto continue
+			break
 		elseif sortQuality > 1 and data.gemType ~= sortQuality - 2 then
-			goto continue
+			break
 		elseif sortAffinity > 1 and data.gemDomain ~= sortAffinity - 2 then
-			goto continue
+			break
 		elseif #currentSearchText > 0 and not GemAtelier.matchGemText(data) then
-			goto continue
+			break
 		end
 
 		table.insert(totalGemList, data)
-		:: continue ::
+		until true
 	end
 
 	gemList:destroyChildren()
@@ -200,17 +205,19 @@ function GemAtelier.showGems(selectFirst, lastIndex)
 	local beginList = (currentPage - 1) * 15 + 1
 
 	for i, data in pairs(totalGemList) do
+		local __brk = false
+		repeat
 		if gemCount == 15 then
-			break
+			do __brk = true break end
 		end
 
 		if i < beginList then
-			goto continue
+			break
 		end
 
 		local widget = g_ui.createWidget('GemPanel', gemList)
 		local success = GemAtelier.setupGemWidget(widget, data)
-		
+
 		if success then
 			currentGemList[#currentGemList + 1] = data
 			if widget then
@@ -221,7 +228,8 @@ function GemAtelier.showGems(selectFirst, lastIndex)
 			widget:destroy()
 		end
 
-		:: continue ::
+		until true
+		if __brk then break end
 	end
 
 	GemAtelier.showGemRevelation()
@@ -1158,8 +1166,9 @@ function GemAtelier.setupVesselPanel()
     end
 
     for _, id in pairs(WheelOfDestiny.equipedGems) do
+        repeat
         if type(id) ~= "number" or id < 0 then
-            goto skipGem
+            break
         end
         
         local data = GemAtelier.getGemDataById(id)
@@ -1199,7 +1208,7 @@ function GemAtelier.setupVesselPanel()
                 ))
             end
         end
-        ::skipGem::
+        until true
     end
 
     g_logger.debug("[GemAtelier] setupVesselPanel completed with 4 vessels.")

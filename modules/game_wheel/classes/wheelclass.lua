@@ -114,23 +114,24 @@ function WheelOfDestiny.getSliceIndex(position)
   local smallCircle = Circle.new(x, y, SMALL_CIRCLE)
 
   for _, index in pairs(wheelClick) do
+    repeat
     if WheelButtons[index] then
       local radius = WheelButtons[index].radius
       local circle = Circle.new(x, y, radius)
       if radius == BIG_LARGE_CIRCLE and (largeCircle:inArea(position) or bigMediumCircle:inArea(position) or mediumCircle:inArea(position) or smallCircle:inArea(position)) then
-        goto continue
+        break
       elseif radius == BIG_LARGE_CIRCLE then
         circle = bigLargeCircle
       elseif radius == LARGE_CIRCLE and (bigMediumCircle:inArea(position) or mediumCircle:inArea(position) or smallCircle:inArea(position)) then
-        goto continue
+        break
       elseif radius == LARGE_CIRCLE then
         circle = largeCircle
       elseif radius == BIG_MEDIUM_CIRCLE and (mediumCircle:inArea(position) or smallCircle:inArea(position)) then
-        goto continue
+        break
       elseif radius == BIG_MEDIUM_CIRCLE then
         circle = bigMediumCircle
       elseif radius == MEDIUM_CIRCLE and smallCircle:inArea(position) then
-        goto continue
+        break
       elseif radius == MEDIUM_CIRCLE then
         circle = mediumCircle
       elseif radius == SMALL_CIRCLE then
@@ -143,8 +144,8 @@ function WheelOfDestiny.getSliceIndex(position)
         end
       end
 
-      ::continue::
     end
+    until true
   end
 
   return 0
@@ -566,6 +567,7 @@ function WheelOfDestiny.checkFilledVessels(originalIndex)
 
 	local lastModInserted = 0
 	for _, id in pairs(WheelOfDestiny.vesselEnabled[bonus.domain - 1]) do
+		repeat
 		local widget = wheelPanel:recursiveGetChildById("icon"..id)
 		local modIcon = widget:recursiveGetChildById("modIcon"..id)
 		local iconInfo = WheelIcons[WheelOfDestiny.vocationId][id]
@@ -573,7 +575,7 @@ function WheelOfDestiny.checkFilledVessels(originalIndex)
 		bonus = WheelBonus[id - 1]
 		local gem = GemAtelier.getEquipedGem(bonus.domain - 1)
 		if not gem then
-			goto continue
+			break
 		end
 
 		widget:setImageSource("/images/game/wheel/icons-skillwheel-mediumperks")
@@ -600,7 +602,7 @@ function WheelOfDestiny.checkFilledVessels(originalIndex)
 			WheelOfDestiny.equipedGemBonuses[id] = {bonusID = gem.supremeBonus, supreme = true, gemID = gem.gemID}
 			lastModInserted = 3
 		end
-		:: continue ::
+		until true
 	end
 end
 
@@ -1165,6 +1167,7 @@ function resetWheel(ignoreprotocol)
   WheelOfDestiny.passivePoints = table.reserve(4, 0)
 
   for index, connection in ipairs(WheelNodes) do
+    repeat
     if WheelOfDestiny.vocationId ~= 0 then
       local widget = wheelPanel:recursiveGetChildById("icon"..index)
       local modIcon = widget:recursiveGetChildById("modIcon"..index)
@@ -1180,13 +1183,13 @@ function resetWheel(ignoreprotocol)
     if WheelButtons[index].radius == SMALL_CIRCLE then
       wheelPanel:recursiveGetChildById('fullColorWheel_'..index):setVisible(true)
       wheelPanel:recursiveGetChildById('colorWheel_'..index):setVisible(false)
-      goto continue
+      break
     end
 
     wheelPanel:recursiveGetChildById('fullColorWheel_'..index):setVisible(false)
     wheelPanel:recursiveGetChildById('colorWheel_'..index):setVisible(false)
 
-    ::continue::
+    until true
 
     WheelOfDestiny.pointInvested[index] = 0
   end
@@ -1247,9 +1250,10 @@ function WheelOfDestiny.configureDedicationPerk()
   local vocation = WheelOfDestiny.vocationId
 
   for id, bonus in pairs(WheelBonus) do
+    repeat
     local index = id + 1
     if not WheelOfDestiny.isLit(index) then
-      goto label
+      break
     end
     local points = WheelOfDestiny.pointInvested[index]
     local attribute = WheelConsts[bonus.dedication]
@@ -1267,7 +1271,7 @@ function WheelOfDestiny.configureDedicationPerk()
       mana = mana +  (points * attribute["mana"][vocation])
     end
 
-    ::label::
+    until true
   end
 
   wheelOfDestinyWindow.dedicationPerks.tabContent.hitPoints.value:setText((health > 0 and "+" or "") .. health)
@@ -1368,9 +1372,10 @@ function WheelOfDestiny.configureSummary()
   local vocation = WheelOfDestiny.vocationId
 
   for id, bonus in pairs(WheelBonus) do
+    repeat
     local index = id + 1
     if not WheelOfDestiny.isLit(index) then
-      goto label
+      break
     end
     local points = WheelOfDestiny.pointInvested[index]
     local attribute = WheelConsts[bonus.dedication]
@@ -1388,13 +1393,14 @@ function WheelOfDestiny.configureSummary()
       mana = mana +  (points * attribute["mana"][vocation])
     end
 
-    ::label::
+    until true
   end
 
   -- normal gem bonusses
   for i, k in pairs(WheelOfDestiny.equipedGemBonuses) do
+		repeat
 		if k.bonusID == -1 then
-			goto continue
+			break
 		end
 
 		local bonus = k.supreme and SupremeGemDescription[k.bonusID] or RegularGemDescription[k.bonusID]
@@ -1423,7 +1429,7 @@ function WheelOfDestiny.configureSummary()
         mitigation = mitigation + (type1 + type2)
       end
     end
-    :: continue ::
+    until true
   end
 
   -- damage and healing
@@ -1462,6 +1468,7 @@ function WheelOfDestiny.configureSummary()
 
   local convictions = getConvictionPerks()
   for _, t in ipairs(f_table) do
+    repeat
     local widget = g_ui.createWidget("PerksPanel", wheelOfDestinyWindow.summary.tabContent)
     widget.perk:setText(t)
     widget.info:setVisible(false)
@@ -1479,7 +1486,7 @@ function WheelOfDestiny.configureSummary()
       local lifeleech = convictions[4]
       if not lifeleech or lifeleech.points == 0 then
         widget:destroy()
-        goto label
+        break
       end
 
       widget.value:setText(lifeleech.stringPoint)
@@ -1488,7 +1495,7 @@ function WheelOfDestiny.configureSummary()
       local manaleech = convictions[5]
       if not manaleech or manaleech.points == 0 then
         widget:destroy()
-        goto label
+        break
       end
 
       widget.value:setText(manaleech.stringPoint)
@@ -1496,7 +1503,7 @@ function WheelOfDestiny.configureSummary()
     else
       widget:destroy()
     end
-    ::label::
+    until true
   end
 
   -- separator
@@ -1511,12 +1518,13 @@ function WheelOfDestiny.configureSummary()
 
   local hasCreated = false
   for _, t in pairs(f_table) do
+    repeat
     local widget = g_ui.createWidget("PerksPanel", wheelOfDestinyWindow.summary.tabContent)
     if t == "special_1" then
       local c = convictions[1]
       if not c then
         widget:destroy()
-        goto label
+        break
       end
 
       widget.perk:setText(c.perk)
@@ -1528,7 +1536,7 @@ function WheelOfDestiny.configureSummary()
       local c = convictions[2]
       if not c then
         widget:destroy()
-        goto label
+        break
       end
 
       widget.perk:setText(c.perk)
@@ -1540,7 +1548,7 @@ function WheelOfDestiny.configureSummary()
       local c = convictions[3]
       if not c then
         widget:destroy()
-        goto label
+        break
       end
 
       widget.perk:setText(c.perk)
@@ -1549,7 +1557,7 @@ function WheelOfDestiny.configureSummary()
       widget.info:setTooltip(c.tooltip)
       hasCreated = true
     end
-    ::label::
+    until true
   end
 
   if hasCreated then
@@ -1567,11 +1575,12 @@ function WheelOfDestiny.configureSummary()
   --- Convictions
   local hasCreated = false
   for _, t in pairs(f_table) do
+    repeat
     local widget = g_ui.createWidget("PerksPanel", wheelOfDestinyWindow.summary.tabContent)
     local c = convictions[_]
     if not c then
       widget:destroy()
-      goto label
+      break
     end
 
     widget.perk:setText(c.perk)
@@ -1579,13 +1588,14 @@ function WheelOfDestiny.configureSummary()
     widget.info:setTooltip(c.tooltip)
     widget.info:setVisible(true)
     hasCreated = true
-    ::label::
+    until true
   end
 
   local bonus = getVesselBonus()
   for _, data in pairs(bonus) do
+    repeat
     if data.bonusType ~= "augment" then
-      goto continue
+      break
     end
 
     local widget = g_ui.createWidget("PerksPanel", wheelOfDestinyWindow.summary.tabContent)
@@ -1611,7 +1621,7 @@ function WheelOfDestiny.configureSummary()
     end
 
     hasCreated = true
-    :: continue ::
+    until true
   end
 
   if hasCreated then
@@ -1723,8 +1733,9 @@ function WheelOfDestiny.configureSummary()
 
   local bonus = getVesselBonus()
   for _, data in pairs(bonus) do
+    repeat
     if data.bonusType ~= "revelation" then
-      goto continue
+      break
     end
 
     local widget = g_ui.createWidget("PerksPanel", wheelOfDestinyWindow.summary.tabContent)
@@ -1748,7 +1759,7 @@ function WheelOfDestiny.configureSummary()
     else
       widget.value:setText(data.value)
     end
-    :: continue ::
+    until true
   end
 
   ----------------------------
@@ -1758,8 +1769,9 @@ function WheelOfDestiny.configureSummary()
   local hasDefense = false
   local bonus = getVesselBonus()
   for _, data in pairs(bonus) do
+    repeat
     if data.bonusType ~= "defense" then
-      goto continue
+      break
     end
 
     local widget = g_ui.createWidget("PerksPanel", wheelOfDestinyWindow.summary.tabContent)
@@ -1785,7 +1797,7 @@ function WheelOfDestiny.configureSummary()
     end
 
     hasDefense = true
-    :: continue ::
+    until true
   end
 
   if hasDefense then
@@ -1802,18 +1814,19 @@ function WheelOfDestiny.configureSummary()
 
   local hasCreated = false
   for _, t in pairs(f_table) do
+    repeat
     local widget = g_ui.createWidget("PerksPanel", wheelOfDestinyWindow.summary.tabContent)
     local c = convictions[_]
     if not c then
       widget:destroy()
-      goto label
+      break
     end
     widget.perk:setText(c.perk)
     widget.value:setText(c.stringPoint)
     widget.info:setTooltip(c.tooltip)
     widget.info:setVisible(true)
     hasCreated = true
-    ::label::
+    until true
   end
 
   if hasCreated then
@@ -1981,13 +1994,14 @@ local function getLocalGemStruct()
   local struct = {-1, -1, -1, -1}
 
   for _, id in pairs(WheelOfDestiny.equipedGems) do
+    repeat
     local domain = GemAtelier.getGemDomainById(id)
     if domain == -1 then
-      goto continue
+      break
     end
 
     struct[domain + 1] = id
-    ::continue::
+    until true
   end
 
   return struct
@@ -3233,6 +3247,7 @@ function WheelOfDestiny.generateInternalPreset()
 
   
 	for k, v in pairs(WheelOfDestiny.externalPreset.presets) do
+		repeat
 		local codeString = v["exportString"]
 		local vocationString = codeString:sub(1, 2)
 		local base64Data = codeString:sub(3)
@@ -3241,13 +3256,13 @@ function WheelOfDestiny.generateInternalPreset()
 		-- Invalid data
 		if table.empty(data) or vocationString ~= getVocationSt(playerVocation) then
 			table.remove(WheelOfDestiny.externalPreset.presets, k)
-      goto continue
+      break
 		end
 
 		g_logger.debug(string.format("[WheelPresets] Adding preset '%s' with %d points", v.name, data.maxPoints))
 		table.insert(WheelOfDestiny.internalPreset, { presetName = v.name, availablePoints = data.maxPoints, usedPoints = data.usedPoints, pointInvested = data.pointInvested, equipedGems = data.equipedGems })
-	
-    :: continue ::
+
+    until true
   end
 end
 

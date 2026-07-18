@@ -39,17 +39,18 @@ function Workshop.createFragments()
 
 	fragmentList = {}
 	for id = 0, #FlatSupremeMods do
+		repeat
 		local info = FlatSupremeMods[id]
 		if info then
 			if id == 4 and vocationId > 6 then
-				goto continue
+				break
 			end
 
 			info.modID = id
 			info.supreme = true
 			table.insert(fragmentList, info)
-			::continue::
 		end
+		until true
 	end
 
 	local vocationMods = VocationSupremeMods[vocationId]
@@ -614,9 +615,10 @@ function Workshop.getSortList(sortOption, equippedBasic, equippedSupreme, text)
 	local gradesText = { ["Grade II"] = 1, ["Grade III"] = 2, ["Grade IV"] = 3 }
 
     for _, data in pairs(fragmentList) do
+		repeat
 		-- Only apply text filter if text is not empty
 		if text and not string.empty(text) and not matchText(text, data.tooltip) then
-			goto continue
+			break
 		end
 
         local modIDStr = tostring(data.modID)
@@ -646,7 +648,7 @@ function Workshop.getSortList(sortOption, equippedBasic, equippedSupreme, text)
             end
         end
 
-		:: continue ::
+		until true
     end
     return tmpList
 end
