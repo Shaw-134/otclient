@@ -3,7 +3,7 @@
 
 -- updater
 Services = {
-    --updater = "http://localhost/api/updater.php", --./updater
+    updater = "http://135.181.255.164:8080/client-updates/updater.php", --./updater
     --status = "http://localhost/login.php", --./client_entergame | ./client_topmenu
     --websites = "http://localhost/?subtopic=accountmanagement", --./client_entergame "Forgot password and/or email"
     --createAccount = "http://localhost/clientcreateaccount.php", --./client_entergame -- createAccount.lua
@@ -63,43 +63,22 @@ if ENABLE_SERVERS then
     --
     Servers_init = {
 
-        -- Local login server
-        ---
-        -- Configuration for local login server.
-        -- @class table
-        -- @name local_login
-        -- @field port Port used for HTTP connection
-        -- @field protocol Protocol identifier used by the application
-        -- @field httpLogin Enables HTTP-based login on the server
-        -- @field useAuthenticator Enables additional authentication layer
-        --
-        ["http://127.0.0.1/login.php"] = {
-            port = 80,
-            protocol = 1511,
+        -- Bloxer OT (Kemet OT) -- the real server this client build ships for.
+        -- Modern HTTP login via opentibiabr/login-server, protocol 1525 (15.25,
+        -- Canary's current protocol -- see the server's own boot log:
+        -- "Allowed client protocols: 15.25, 10x and 8.6").
+        ["http://135.181.255.164:8088/login"] = {
+            port = 8088,
+            protocol = 1525,
             httpLogin = true,
             useAuthenticator = false
-        },
-
-        -- External server
-        ---
-        -- Configuration for external server ip.net.
-        -- @class table
-        -- @name ip_net
-        -- @field port TCP port used for connection
-        -- @field protocol Protocol identifier used by the server
-        -- @field httpLogin Indicates if the server allows HTTP login
-        --
-        ["ip.net"] = {
-            port = 7171,
-            protocol = 860,
-            httpLogin = false
         }
     }
 end
 
-g_app.setName("OTClient - Redemption");
-g_app.setCompactName("otclient");
-g_app.setOrganizationName("otcr");
+g_app.setName("Bloxer OT");
+g_app.setCompactName("bloxerot");
+g_app.setOrganizationName("BloxerOT");
 
 g_app.hasUpdater = function()
     return (Services.updater and Services.updater ~= "" and g_modules.getModule("updater"))
