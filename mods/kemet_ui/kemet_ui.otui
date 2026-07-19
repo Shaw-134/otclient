@@ -1,0 +1,36 @@
+KemetUIWindow < UIWidget
+  id: kemetUIWindow
+  size: 220 80
+  anchors.top: parent.top
+  anchors.right: parent.right
+  margin-top: 4
+  margin-right: 4
+  background-color: #00000088
+
+  Label
+    id: lotteryCountdown
+    !text: tr('Next draw: --:--:--')
+    anchors.top: parent.top
+    anchors.left: parent.left
+    margin: 4
+    color: #d4af37
+
+  Label
+    id: expBoostTimer
+    !text: tr('')
+    anchors.top: prev.bottom
+    anchors.left: parent.left
+    margin-top: 2
+    margin-left: 4
+    color: #66ff66
+    visible: false
+
+  Label
+    id: vocationBuffTimer
+    !text: tr('')
+    anchors.top: prev.bottom
+    anchors.left: parent.left
+    margin-top: 2
+    margin-left: 4
+    color: #66bbff
+    visible: false

@@ -1,0 +1,12 @@
+Module
+  name: kemet_ui
+  description: Bloxer OT (Kemet OT) custom HUD - vocation weekly buffs, lottery countdown, EXP boost tracker
+  author: Kemet OT team
+  website: -
+  sandboxed: false
+  scripts: [kemet_ui]
+  load-later: [game_interface]
+  @onLoad: |
+    KemetUI.init()
+  @onUnload: |
+    KemetUI.terminate()
