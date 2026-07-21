@@ -1,6 +1,6 @@
 Module
   name: kemet_ui
-  description: Bloxer OT (Kemet OT) custom HUD - vocation weekly buffs, lottery countdown, EXP boost tracker
+  description: Bloxer OT (Kemet OT) custom HUD - vocation weekly buffs, lottery countdown, EXP boost tracker, Wave Defense status, Shop Points balance, daily task streak, PvP-off badge
   author: Kemet OT team
   website: -
   sandboxed: false
