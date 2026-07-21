@@ -160,7 +160,7 @@ MiniWindow
         image-clip: 0 0 108 20
       $pressed:
         image-clip: 0 20 108 20
-      @onClick: modules.game_cyclopedia.show("items")
+      @onClick: if modules.game_cyclopedia then modules.game_cyclopedia.show("items") end
 
   UIWidget
     id: miniborder

@@ -160,7 +160,7 @@ function zoomOut()
 end
 
 function openCyclopediaMap()
-    if g_game.getClientVersion() >= 1310 then
+    if g_game.getClientVersion() >= 1310 and modules.game_cyclopedia then
         modules.game_cyclopedia.toggle('map')
     else
         return fullscreen()

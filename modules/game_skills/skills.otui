@@ -80,8 +80,10 @@ XpBoostButton < UIWidget
     anchors.top: prev.bottom
     margin-top : -7
     @onClick: |
-      modules.game_store.toggle()
-      g_game.sendRequestStorePremiumBoost()
+      if modules.game_store then
+        modules.game_store.toggle()
+        g_game.sendRequestStorePremiumBoost()
+      end
     $pressed:
       image-source: /images/ui/button-storexp-pressed
 

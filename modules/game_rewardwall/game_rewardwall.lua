@@ -507,11 +507,13 @@ function rewardWallController:onClickToggle()
 end
 
 function rewardWallController:onClickSendStoreRewardWall()
+    if not modules.game_store then return end
     modules.game_store.toggle()
     g_game.sendRequestStorePremiumBoost()
 end
 
 function rewardWallController:onClickbuyInstantRewardAccess()
+    if not modules.game_store then return end
     modules.game_store.toggle()
     g_game.sendRequestUsefulThings(StoreConst.InstantRewardAccess)
 end

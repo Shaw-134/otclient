@@ -230,8 +230,10 @@ Window
       anchors.bottom: parent.bottom
       anchors.left: parent.left
       @onClick: |
-        modules.game_cyclopedia.show("items")
-        
+        if modules.game_cyclopedia then
+          modules.game_cyclopedia.show("items")
+        end
+
   Panel
     id: information
     size: 140 115

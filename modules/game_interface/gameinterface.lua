@@ -739,7 +739,7 @@ function createThingMenu(menuPosition, lookThing, useThing, creatureThing)
                 g_game.requestOutfit()
             end)
 
-            if g_game.getFeature(GamePrey) then
+            if g_game.getFeature(GamePrey) and modules.game_prey then
                 menu:addOption(tr('Prey Dialog'), function()
                     modules.game_prey.show()
                 end)

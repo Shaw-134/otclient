@@ -148,6 +148,7 @@ function onUpdateBlessDialog(data)
 end
 
 function BlessingController:onClickSendStore()
+    if not modules.game_store then return end
     modules.game_store.toggle()
     g_game.sendRequestStorePremiumBoost()
 end
