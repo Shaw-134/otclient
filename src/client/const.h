@@ -665,6 +665,12 @@ namespace Otc
         GameNpcWindowRedesign = 133,
         GameTaskboard = 134,
         GameProficiency = 135,
+
+        // Kemet-project-specific extension (not real CipSoft behavior): matches
+        // server-side ProtocolFeature::PlayerDataLevelU32. When enabled, player
+        // level is read as a uint32_t instead of uint16_t at all level-related
+        // packet sites, to support levels above 65535 (endgame is 350,000+).
+        GameLevelU32 = 136,
         LastGameFeature
     };
 

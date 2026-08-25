@@ -2589,7 +2589,8 @@ void ProtocolGame::parsePlayerStats(const InputMessagePtr& msg) const
     }
 
     const uint64_t experience = g_game.getFeature(Otc::GameDoubleExperience) ? msg->getU64() : msg->getU32();
-    const uint16_t level = g_game.getFeature(Otc::GameLevelU16) ? msg->getU16() : msg->getU8();
+    const uint32_t level = g_game.getFeature(Otc::GameLevelU32) ? msg->getU32() :
+        (g_game.getFeature(Otc::GameLevelU16) ? msg->getU16() : msg->getU8());
     const uint16_t levelPercent = g_game.getFeature(Otc::GameLevelPercentU16) ? msg->getU16() : static_cast<uint16_t>(msg->getU8());
 
     if (g_game.getFeature(Otc::GameExperienceBonus)) {
@@ -2860,7 +2861,8 @@ void ProtocolGame::parseTalk(const InputMessagePtr& msg)
         msg->getU8(); // suffix
     }
 
-    const uint16_t level = g_game.getFeature(Otc::GameMessageLevel) ? msg->getU16() : 0;
+    const uint32_t level = g_game.getFeature(Otc::GameMessageLevel) ?
+        (g_game.getFeature(Otc::GameLevelU32) ? msg->getU32() : msg->getU16()) : 0;
 
     auto messageByte = msg->getU8();
     const Otc::MessageMode mode = Proto::translateMessageModeFromServer(messageByte);
@@ -5527,7 +5529,11 @@ void ProtocolGame::parseCyclopediaCharacterInfo(const InputMessagePtr& msg)
         {
             msg->getString(); // player name
             msg->getString(); // player vocation name
-            msg->getU16(); // player level
+            if (g_game.getFeature(Otc::GameLevelU32)) {
+                msg->getU32(); // player level
+            } else {
+                msg->getU16(); // player level
+            }
             getOutfit(msg, false);
             msg->getU8(); // ???
             if (g_game.getFeature(Otc::GameTournamentPackets)) {
@@ -5540,7 +5546,7 @@ void ProtocolGame::parseCyclopediaCharacterInfo(const InputMessagePtr& msg)
         {
             CyclopediaCharacterGeneralStats stats;
             stats.experience = msg->getU64();
-            stats.level = msg->getU16();
+            stats.level = g_game.getFeature(Otc::GameLevelU32) ? msg->getU32() : msg->getU16();
             stats.levelPercent = g_game.getFeature(Otc::GameLevelPercentU16) ? msg->getU16() / 100 : msg->getU8();
             stats.baseExpGain = msg->getU16();
             if (g_game.getFeature(Otc::GameTournamentPackets)) {
@@ -7080,7 +7086,7 @@ void ProtocolGame::parseClientEvent(const InputMessagePtr& msg)
             break;
         }
         case Otc::CLIENT_EVENT_TYPE_LEVEL: {
-            const auto level = msg->getU16();
+            const uint32_t level = g_game.getFeature(Otc::GameLevelU32) ? msg->getU32() : msg->getU16();
             g_lua.callGlobalField("g_game", "onClientEvent", type, level);
             break;
         }
@@ -7247,7 +7253,7 @@ void ProtocolGame::parseHighscores(const InputMessagePtr& msg)
     const uint16_t totalPages = msg->getU16();
 
     const uint8_t sizeEntries = msg->getU8();
-    std::vector<std::tuple<uint32_t, std::string, std::string, uint8_t, std::string, uint16_t, uint8_t, uint64_t>> highscores;
+    std::vector<std::tuple<uint32_t, std::string, std::string, uint8_t, std::string, uint32_t, uint8_t, uint64_t>> highscores;
 
     for (auto i = 0; i < sizeEntries; ++i) {
         const uint32_t rank = msg->getU32();
@@ -7255,7 +7261,7 @@ void ProtocolGame::parseHighscores(const InputMessagePtr& msg)
         const auto& title = msg->getString();
         const uint8_t vocation = msg->getU8();
         const auto& world = msg->getString();
-        const uint16_t level = msg->getU16();
+        const uint32_t level = g_game.getFeature(Otc::GameLevelU32) ? msg->getU32() : msg->getU16();
         const uint8_t isPlayer = msg->getU8();
         const uint64_t points = msg->getU64();
         highscores.emplace_back(rank, name, title, vocation, world, level, isPlayer, points);

@@ -14,6 +14,13 @@ controller:registerEvents(g_game, {
         g_game.enableFeature(GameMapCache)
         -- g_game.enableFeature(GameSmoothWalkElevation)
 
+        -- Kemet-project-specific extension (not tied to any real CipSoft
+        -- client version): matches the server's PlayerDataLevelU32 protocol
+        -- feature, which is enabled by default for this project's
+        -- client/server pair. Always on, since endgame levels (350,000+)
+        -- overflow a uint16_t.
+        g_game.enableFeature(GameLevelU32)
+
         if version >= 750 then
             g_game.enableFeature(GameSoul)
         end
